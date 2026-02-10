@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Inject,
   Injectable,
   NotFoundException,
@@ -88,18 +89,16 @@ export class AuthService {
       where: { id: userId },
     });
 
-    if (!user || !user.refreshToken) {
-      throw new NotFoundException('Account not found');
-    }
+    if (!user) throw new NotFoundException('Account not found');
+    if (!user.refreshToken) throw new ForbiddenException('Access denied');
 
     const refreshTokenMatches = await argon.verify(
       user.refreshToken,
       refreshToken,
     );
 
-    if (!refreshTokenMatches) {
-      throw new BadRequestException('Invalid refresh token');
-    }
+    if (!refreshTokenMatches) throw new ForbiddenException('Access denied');
+
     const { accessToken, refreshToken: newRefreshToken } =
       await this.generateTokens({
         sub: user.id,
@@ -112,21 +111,21 @@ export class AuthService {
 
   async me(userId: string): Promise<IAuthUserResponse> {
     const user = await this.prismaService.user.findUnique({
-      where: { id: userId },
+      where: { id: userId, deletedAt: null, refreshToken: { not: null } },
       select: authUserResponseSelect,
     });
 
-    if (!user) throw new NotFoundException('Account not found');
+    if (!user) throw new ForbiddenException('Access denied');
     return user;
   }
 
   async status(userId: string): Promise<IAuthStatusResponse> {
     const user = await this.prismaService.user.findUnique({
-      where: { id: userId, deletedAt: null },
+      where: { id: userId, deletedAt: null, refreshToken: { not: null } },
       select: { id: true },
     });
 
-    if (!user) throw new NotFoundException('Account not found');
+    if (!user) return { ok: false };
 
     return { ok: true };
   }

@@ -4,7 +4,7 @@ import { REFRESH_TOKEN_STRATEGY } from '../strategies/index.js';
 
 /**
  * Refresh token guard
- * - This guard is used to get the refresh token from the request header
+ * - This guard is used to get the refresh token from the cookie
  * - before use this, bypass the global AccessTokenGuard by using PublicRoute decorator
  */
 
